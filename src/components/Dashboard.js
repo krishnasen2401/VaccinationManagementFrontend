@@ -91,7 +91,7 @@ export default function Dashboard() {
               <p><strong>Location:</strong> {drive.location}</p>
               <p><strong>Dates:</strong> {drive.startDate} - {drive.endDate}</p>
               <p><strong>Status:</strong> {drive.status}</p>
-              <p><strong>Target Classes:</strong> {drive.targetClasses.join(", ")}</p>
+              <p><strong>Target Classes:</strong> {drive.targetClasses.map(cls => `${cls.name}-${cls.section}`).join(", ")}</p>
               <p><strong>Registered Students:</strong> {drive.registeredStudents}</p>
               <p><strong>Vaccinated Students:</strong> {drive.vaccinatedStudents}</p>
               <p><strong>Percent Vaccinated:</strong> {drive.percentVaccinated}%</p>
