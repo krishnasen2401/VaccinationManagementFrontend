@@ -179,7 +179,7 @@ export default function ManageStudents() {
                   Edit
                 </button>
                 <button
-                  onClick={() => handleDeleteStudent(s._id || s.id)}
+                  onClick={() => handleDeleteStudent(s.studentId || s.studentId)}
                   style={styles.deleteButton}
                 >
                   Delete
