@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 export default function VaccinationDrives() {
   const [drives, setDrives] = useState([]);
@@ -6,6 +7,7 @@ export default function VaccinationDrives() {
   const [classesList, setClassesList] = useState([]);
   const [editMode, setEditMode] = useState(false);
   const [editDriveId, setEditDriveId] = useState(null);
+  const navigate = useNavigate();
 
   const initialForm = {
     name: "",
@@ -73,6 +75,20 @@ export default function VaccinationDrives() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+  };
+//   const handleOpenVaccinationForm = (drive) => {
+// <div style={styles.navLinks}>
+//         <button style={styles.link} onClick={() => navigate("/vaccinationEntry")}>Manage Students</button>
+//         </div>
+// };
+
+ const handleOpenVaccinationForm = (drive) => {
+    console.log("Navigating with drive info:", drive);
+
+    // Navigating to the vaccination entry page with drive data
+    navigate("/vaccination-entry", {
+      state: { drive }, // Pass the entire drive object in state
+    });
   };
 
   const handleCreate = async (e) => {
@@ -261,6 +277,34 @@ export default function VaccinationDrives() {
           <button onClick={() => handleDelete(drive)} style={{ backgroundColor: "#e74c3c", color: "#fff" }}>
     Delete Drive
   </button>
+   <button
+      onClick={() => handleOpenVaccinationForm(drive)}
+      style={{                                                                                                                                       
+        padding: "8px 16px",                                                                                                      
+        backgroundColor: "#28a745",
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        marginTop: "10px"
+      }}
+    >
+      ➕ Add Vaccination Entry
+    </button>
+    {/* <div style={styles.navLinks}>
+        <button 
+         style={{                                                                                                                                       
+        padding: "8px 16px",                                                                                                      
+        backgroundColor: "#28a745",
+        color: "#fff",
+        border: "none",
+        borderRadius: "4px",
+        cursor: "pointer",
+        marginTop: "10px"
+      }}
+         onClick={() => navigate("/vaccinationEntry")}
+          > ➕ Add Vaccination Entry</button>
+        </div> */}
         </div>
       ))}
     </div>

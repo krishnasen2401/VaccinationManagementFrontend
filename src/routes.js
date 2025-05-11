@@ -5,6 +5,8 @@ import Dashboard from "./components/Dashboard";
 import ManageStudents from "./components/ManageStudents";
 import VaccinationDrives from "./components/VaccinationDrives";
 import Reports from "./components/Reports";
+import VaccinationEntry from "./components/VaccinationEntry";
+
 
 const isAuthenticated = () => {
   console.log(localStorage.getItem("token"))
@@ -19,6 +21,7 @@ export default function AppRoutes() {
       <Route path="/manage-students" element={<ManageStudents />} />
       <Route path="/vaccination-drives" element={<VaccinationDrives />} />
       <Route path="/reports" element={<Reports />} />
+      <Route path="/vaccination-entry" element={<VaccinationEntry />} />
     </Routes>
   );
 }

@@ -1,48 +1,81 @@
-import React from "react";
+import React, { useEffect, useState, useRef } from "react";
 
-// Mock report data (replace with real data/API later)
-const reports = [
-  { id: 1, name: "Alice Johnson", class: "8A", vaccinated: true, date: "2025-04-10" },
-  { id: 2, name: "Bob Smith", class: "9B", vaccinated: false, date: null },
-  { id: 3, name: "Charlie Lee", class: "7C", vaccinated: true, date: "2025-03-25" },
-  { id: 4, name: "Diana Patel", class: "8B", vaccinated: true, date: "2025-03-25" },
-];
+const ReportsPage = () => {
+  const [reportData, setReportData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const token = localStorage.getItem("token");
+  const printRef = useRef();
 
-export default function Reports() {
+  useEffect(() => {
+    const fetchReports = async () => {
+      try {
+        const response = await fetch("http://192.168.29.7:3000/records", {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+        if (Array.isArray(data)) {
+          setReportData(data);
+        } else {
+          setError("Unexpected response format.");
+        }
+      } catch (err) {
+        console.error(err);
+        setError("Failed to load reports.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReports();
+  }, []);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div style={styles.container}>
-      <h2 style={styles.title}>Student Vaccination Reports</h2>
+      <div style={styles.header}>
+        <h2>Vaccination Reports</h2>
+        <button onClick={handlePrint} style={styles.printButton}>
+          🖨️ Print Report
+        </button>
+      </div>
 
-      <div style={styles.card}>
-        {reports.length === 0 ? (
-          <p style={styles.emptyState}>📄 No student reports available.</p>
-        ) : (
+      {loading && <p>Loading...</p>}
+      {error && <p style={styles.error}>{error}</p>}
+      {!loading && reportData.length === 0 && <p>No reports found.</p>}
+
+      <div style={styles.tableWrapper} ref={printRef}>
+        {reportData.length > 0 && (
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={styles.th}>ID</th>
-                <th style={styles.th}>Name</th>
+                <th style={styles.th}>Student Name</th>
                 <th style={styles.th}>Class</th>
-                <th style={styles.th}>Vaccinated</th>
-                <th style={styles.th}>Vaccination Date</th>
+                <th style={styles.th}>Section</th>
+                <th style={styles.th}>Date</th>
+                <th style={styles.th}>Vaccine</th>
+                <th style={styles.th}>Batch ID</th>
+                <th style={styles.th}>Notes</th>
               </tr>
             </thead>
             <tbody>
-              {reports.map((report) => (
-                <tr key={report.id}>
-                  <td style={styles.td}>{report.id}</td>
-                  <td style={styles.td}>{report.name}</td>
-                  <td style={styles.td}>{report.class}</td>
-                  <td
-                    style={{
-                      ...styles.td,
-                      color: report.vaccinated ? "#4CAF50" : "#f44336",
-                      fontWeight: "500",
-                    }}
-                  >
-                    {report.vaccinated ? "✅ Yes" : "❌ No"}
-                  </td>
-                  <td style={styles.td}>{report.date ? report.date : "N/A"}</td>
+              {reportData.map((record) => (
+                <tr key={record.recordId}>
+                  <td style={styles.td}>{record.studentId.name}</td>
+                  <td style={styles.td}>{record.studentId.classId.name}</td>
+                  <td style={styles.td}>{record.studentId.classId.section}</td>
+                  <td style={styles.td}>{new Date(record.date).toLocaleString()}</td>
+                  <td style={styles.td}>{record.vaccine?.vaccineName || "N/A"}</td>
+                  <td style={styles.td}>{record.batchId}</td>
+                  <td style={styles.td}>{record.notes}</td>
                 </tr>
               ))}
             </tbody>
@@ -51,48 +84,57 @@ export default function Reports() {
       </div>
     </div>
   );
-}
+};
 
 const styles = {
   container: {
     padding: "2rem",
-    fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
-    backgroundColor: "#f4f7f9",
+    fontFamily: "'Segoe UI', sans-serif",
+    backgroundColor: "#f9f9f9",
     minHeight: "100vh",
   },
-  title: {
-    textAlign: "center",
-    fontSize: "2rem",
-    color: "#2c3e50",
-    marginBottom: "1.5rem",
-    borderBottom: "3px solid #4CAF50",
-    paddingBottom: "0.5rem",
+  header: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "1rem",
   },
-  card: {
-    backgroundColor: "#fff",
-    borderRadius: "10px",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-    padding: "1.5rem",
+  printButton: {
+    backgroundColor: "#007bff",
+    color: "white",
+    border: "none",
+    padding: "10px 14px",
+    borderRadius: "4px",
+    cursor: "pointer",
+    fontSize: "14px",
   },
-  emptyState: {
-    color: "#777",
-    fontStyle: "italic",
-    textAlign: "center",
+  error: {
+    color: "red",
+    fontWeight: "bold",
+  },
+  tableWrapper: {
+    overflowX: "auto",
   },
   table: {
     width: "100%",
     borderCollapse: "collapse",
     marginTop: "1rem",
+    backgroundColor: "#fff",
+    boxShadow: "0 0 8px rgba(0, 0, 0, 0.05)",
   },
   th: {
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#343a40",
+    color: "#fff",
     padding: "12px",
-    borderBottom: "2px solid #ddd",
     textAlign: "left",
-    fontWeight: "600",
+    border: "1px solid #dee2e6",
   },
   td: {
-    padding: "12px",
-    borderBottom: "1px solid #eee",
+    padding: "10px",
+    border: "1px solid #dee2e6",
+    textAlign: "left",
+    backgroundColor: "#fff",
   },
 };
+
+export default ReportsPage;
