@@ -6,15 +6,32 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = () => {
-    if (username === "admin" && password === "admin123") {
-      localStorage.setItem("token", "admin_token");
+  const handleLogin = async () => {
+    try {
+      const response = await fetch("http://192.168.29.7:3000/users/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ username, password }),
+      });
+      console.log(response)
+  
+      if (!response.ok) {
+        throw new Error("Invalid credentials");
+      }
+  
+      const data = await response.json();
+  
+      // Assuming the token is returned as: { token: "..." }
+      localStorage.setItem("token", data.token);
       console.log("Login success");
       navigate("/dashboard");
-    } else {
-      alert("Invalid credentials");
+    } catch (error) {
+      alert(error.message);
     }
   };
+  
 
   return (
     <div style={styles.container}>

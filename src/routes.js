@@ -8,7 +8,7 @@ import Reports from "./components/Reports";
 
 const isAuthenticated = () => {
   console.log(localStorage.getItem("token"))
-  return localStorage.getItem("token") === "admin_token";
+  return localStorage.getItem("token") === "XYZ-token";
 };
 
 export default function AppRoutes() {
