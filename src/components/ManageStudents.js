@@ -5,6 +5,7 @@ export default function ManageStudents() {
   const [search, setSearch] = useState("");
   const [editingStudent, setEditingStudent] = useState(null);
   const [csvError, setCsvError] = useState("");
+  const [csvFile, setCsvFile] = useState(null);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -21,6 +22,7 @@ export default function ManageStudents() {
 
         const data = await response.json();
         setStudents(data);
+        console.log(data)
       } catch (error) {
         console.error("Students fetch error:", error);
       }
@@ -35,44 +37,69 @@ export default function ManageStudents() {
       .includes(search.toLowerCase())
   );
 
-  const handleCSVUpload = (e) => {
+  const handleCSVChange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
+    setCsvFile(file);
+  };
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      const content = reader.result;
-      const rows = content.split("\n").map((row) => row.trim());
-      const parsed = [];
+  const handleCSVUpload = () => {
+    if (!csvFile) {
+      setCsvError("⚠️ Please select a CSV file to upload.");
+      return;
+    }
 
-      for (let i = 1; i < rows.length; i++) {
-        const [name, age, className, vaccinated] = rows[i].split(",");
-        if (name && age && className) {
-          parsed.push({
-            id: students.length + parsed.length + 1,
-            name: name.trim(),
-            age: parseInt(age),
-            class: className.trim(),
-            // vaccinated: vaccinated?.toLowerCase().includes("yes"),
-          });
-        }
-      }
+    const token = localStorage.getItem("token");
+    const formData = new FormData();
+    formData.append("file", csvFile);
 
-      if (parsed.length) {
-        setStudents([...students, ...parsed]);
+    fetch("http://192.168.29.7:3000/students/upload", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to upload CSV");
+        return response.json();
+      })
+      .then((data) => {
+        setStudents(data);
         setCsvError("");
-      } else {
-        setCsvError("⚠️ No valid rows found in the CSV.");
-      }
-    };
-    reader.readAsText(file);
+        setCsvFile(null);
+        document.getElementById("csvFileInput").value = "";
+      })
+      .catch((error) => {
+        console.error("CSV upload error:", error);
+        setCsvError("⚠️ Failed to upload CSV file.");
+      });
+  };
+
+  const handleDeleteStudent = async (studentId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`http://192.168.29.7:3000/students/${studentId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!res.ok) throw new Error("Failed to delete student");
+
+      setStudents((prev) => prev.filter((s) => s._id !== studentId && s.id !== studentId));
+    } catch (err) {
+      console.error("Delete student failed:", err);
+    }
   };
 
   const handleSaveStudent = (savedStudent) => {
+    console.log(savedStudent)
     setStudents((prev) =>
-      prev.some((s) => s._id === savedStudent._id || s.id === savedStudent.id)
+      prev.some((s) => s.StudentID === savedStudent.StudentID || s.StudentID === savedStudent.StudentID)
         ? prev.map((s) =>
-            s._id === savedStudent._id || s.id === savedStudent.id
+            s.StudentID === savedStudent.StudentID || s.StudentID === savedStudent.StudentID
               ? savedStudent
               : s
           )
@@ -86,7 +113,15 @@ export default function ManageStudents() {
       <h2>Manage Students</h2>
 
       <div style={{ marginBottom: "1rem" }}>
-        <input type="file" accept=".csv" onChange={handleCSVUpload} />
+        <input
+          id="csvFileInput"
+          type="file"
+          accept=".csv"
+          onChange={handleCSVChange}
+        />
+        <button onClick={handleCSVUpload} style={styles.uploadButton}>
+          Upload
+        </button>
         {csvError && <p style={{ color: "red" }}>{csvError}</p>}
         <p style={{ fontSize: "12px", color: "#555" }}>
           Format: name,age,class
@@ -143,6 +178,12 @@ export default function ManageStudents() {
                 >
                   Edit
                 </button>
+                <button
+                  onClick={() => handleDeleteStudent(s._id || s.id)}
+                  style={styles.deleteButton}
+                >
+                  Delete
+                </button>
               </td>
             </tr>
           ))}
@@ -157,7 +198,7 @@ function StudentForm({ student, onSave, onCancel }) {
     studentId: "",
     name: "",
     dateOfBirth: "",
-    classId: ""
+    classId: "",
   });
   const [classes, setClasses] = useState([]);
 
@@ -169,14 +210,12 @@ function StudentForm({ student, onSave, onCancel }) {
             name: student.name || "",
             dateOfBirth: student.dateOfBirth || "",
             classId: student.classId?._id || "",
-            // vaccinated: student.vaccinated || false,
           }
         : {
             studentId: "",
             name: "",
             dateOfBirth: "",
             classId: "",
-            // vaccinated: false,
           }
     );
   }, [student]);
@@ -198,10 +237,10 @@ function StudentForm({ student, onSave, onCancel }) {
   }, []);
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setForm((prev) => ({
       ...prev,
-      [name]: type === "checkbox" ? checked : value,
+      [name]: value,
     }));
   };
 
@@ -226,7 +265,7 @@ function StudentForm({ student, onSave, onCancel }) {
           StudentID: form.studentId,
           name: form.name,
           dateOfBirth: form.dateOfBirth,
-          classId: form.classId,          // vaccinated: form.vaccinated,
+          classId: form.classId,
         }),
       });
 
@@ -268,31 +307,21 @@ function StudentForm({ student, onSave, onCancel }) {
         style={styles.input}
         required
       />
-<select
-  id="classId"
-  name="classId"
-  value={form.classId}
-  onChange={handleChange}
-  style={styles.input}
-  required
->
-  <option value="">-- Select Class --</option>
-  {classes.map((cls) => (
-    <option key={cls._id} value={cls._id}>  {/* Set value to cls._id */}
-      {cls.name} - {cls.section}  {/* Display name and section */}
-    </option>
-  ))}
-</select>
-
-      {/* <label htmlFor="vaccinated" style={styles.label}>
-        <input
-          id="vaccinated"
-          type="checkbox"
-          name="vaccinated"
-          checked={form.vaccinated}
-          onChange={handleChange}
-        /> Vaccinated
-      </label> */}
+      <select
+        id="classId"
+        name="classId"
+        value={form.classId}
+        onChange={handleChange}
+        style={styles.input}
+        required
+      >
+        <option value="">-- Select Class --</option>
+        {classes.map((cls) => (
+          <option key={cls.classId} value={cls.classId}>
+            {cls.name} - {cls.section}
+          </option>
+        ))}
+      </select>
       <div>
         <button type="submit" style={styles.saveButton}>
           ✅ {student ? "Update Student" : "Add Student"}
@@ -306,7 +335,6 @@ function StudentForm({ student, onSave, onCancel }) {
     </form>
   );
 }
-
 
 const styles = {
   container: {
@@ -348,6 +376,15 @@ const styles = {
     border: "none",
     borderRadius: "4px",
     cursor: "pointer",
+    marginRight: "8px",
+  },
+  deleteButton: {
+    backgroundColor: "#dc3545",
+    color: "#fff",
+    padding: "6px 12px",
+    border: "none",
+    borderRadius: "4px",
+    cursor: "pointer",
   },
   form: {
     display: "flex",
@@ -367,13 +404,6 @@ const styles = {
     borderRadius: "4px",
     border: "1px solid #ccc",
   },
-  label: {
-    display: "flex",
-    alignItems: "center",
-    gap: "6px",
-    fontSize: "14px",
-    flex: "1 0 150px",
-  },
   saveButton: {
     backgroundColor: "#007bff",
     color: "#fff",
@@ -390,14 +420,5 @@ const styles = {
     borderRadius: "4px",
     cursor: "pointer",
     marginLeft: "10px",
-  },
-  csvInfo: {
-    fontSize: "12px",
-    color: "#666",
-    marginTop: "4px",
-  },
-  csvError: {
-    color: "red",
-    marginTop: "6px",
   },
 };
